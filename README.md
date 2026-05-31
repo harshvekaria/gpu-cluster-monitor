@@ -8,37 +8,32 @@ and Streamlit.
 ---
 
 ## Architecture
-+---------------------+
-|   GPU Telemetry     |  12 simulated GPUs emitting temp, utilization,
-|   Simulator         |  power draw, memory bandwidth, error codes
-|   (Python/Kafka)    |  at 1 event/sec/GPU  ->  12 events/sec total
-+----------+----------+
-|
-| Apache Kafka (Topic: gpu-telemetry)
-v
-+---------------------+
-|   PySpark           |  Structured Streaming micro-batches (10s)
-|   Structured        |  |- Thermal throttle detection (temp > 83C)
-|   Streaming         |  |- Efficiency scoring (util + mem bandwidth)
-|   Consumer          |  |- Underutilization flagging (util < 25%)
-|                     |  +- Anomaly detection (z-score across cluster)
-+----------+----------+
-|
-| JDBC (PostgreSQL driver)
-v
-+---------------------+
-|   PostgreSQL        |  gpu_raw_telemetry  -- every reading
-|                     |  gpu_analytics      -- per-batch aggregates
-|                     |  gpu_alerts         -- flagged events only
-+----------+----------+
-|
-| SQLAlchemy
-v
-+---------------------+
-|   Streamlit         |  GPU health map, efficiency rankings,
-|   Dashboard         |  thermal alerts feed, rolling time series,
-|                     |  cluster KPIs -- auto-refreshes every 10s
-+---------------------+
+
+```mermaid
+flowchart TD
+    A["🖥️ GPU Telemetry Simulator\nPython · Kafka Producer\n12 GPUs · 1 event/sec/GPU"] -->|"Apache Kafka\nTopic: gpu-telemetry\n12 events/sec"| B
+
+    B["⚡ PySpark Structured Streaming\nMicro-batch every 10 seconds\nforeachBatch processor"]
+
+    B --> C1["🌡️ Thermal Throttle Detection\nmax_temp > 83C AND util < 60%"]
+    B --> C2["📊 Efficiency Scoring\n0-100 score per GPU"]
+    B --> C3["💤 Underutilization Flagging\navg_util < 25%"]
+    B --> C4["🔍 Anomaly Detection\nZ-score across cluster"]
+
+    C1 & C2 & C3 & C4 --> D["🐘 PostgreSQL 15\nThree-tier storage"]
+
+    D --> D1[("gpu_raw_telemetry\nEvery reading")]
+    D --> D2[("gpu_analytics\nPer-batch aggregates")]
+    D --> D3[("gpu_alerts\nFlagged events only")]
+
+    D1 & D2 & D3 --> E["📈 Streamlit Dashboard\nAuto-refresh every 10s"]
+
+    E --> E1["GPU Health Map"]
+    E --> E2["Efficiency Rankings"]
+    E --> E3["Thermal Alert Feed"]
+    E --> E4["Rolling Time Series"]
+```
+
 ---
 
 ## Features
@@ -70,26 +65,25 @@ v
 
 ## Project Structure
 gpu-cluster-monitor/
-+-- producer/
-|   +-- simulator.py          # GPU telemetry Kafka producer
-|   +-- Dockerfile
-|   +-- requirements.txt
-+-- spark_consumer/
-|   +-- consumer.py           # PySpark Structured Streaming analytics
-|   +-- Dockerfile
-|   +-- requirements.txt
-+-- dashboard/
-|   +-- app.py                # Streamlit live dashboard
-|   +-- Dockerfile
-|   +-- requirements.txt
-+-- postgres/
-|   +-- init/
-|       +-- 01_schema.sql     # Auto-applied schema on first run
-+-- config/
-|   +-- kafka_config.py       # Shared constants
-+-- docker-compose.yml
-+-- .env
-
+├── producer/
+│   ├── simulator.py          # GPU telemetry Kafka producer
+│   ├── Dockerfile
+│   └── requirements.txt
+├── spark_consumer/
+│   ├── consumer.py           # PySpark Structured Streaming analytics
+│   ├── Dockerfile
+│   └── requirements.txt
+├── dashboard/
+│   ├── app.py                # Streamlit live dashboard
+│   ├── Dockerfile
+│   └── requirements.txt
+├── postgres/
+│   └── init/
+│       └── 01_schema.sql     # Auto-applied schema on first run
+├── config/
+│   └── kafka_config.py       # Shared constants
+├── docker-compose.yml
+└── .env
 ---
 
 ## Quick Start
@@ -99,9 +93,6 @@ gpu-cluster-monitor/
 ```bash
 git clone https://github.com/harshvekaria/gpu-cluster-monitor.git
 cd gpu-cluster-monitor
-
-# Copy environment file
-cp .env.example .env
 
 # Start infrastructure
 docker compose up -d zookeeper kafka postgres
@@ -155,8 +146,7 @@ LOW_UTIL if avg_utilization < 25%
 
 **Why Kafka + PySpark over Spark alone?**
 Kafka decouples producers from consumers. The telemetry simulator runs independently,
-and multiple consumers can subscribe to the same topic simultaneously (e.g. a separate
-alerting service alongside the analytics engine).
+and multiple consumers can subscribe to the same topic simultaneously.
 
 **Why foreachBatch instead of native streaming sinks?**
 foreachBatch gives full DataFrame API access inside each micro-batch, enabling
@@ -174,4 +164,6 @@ enabling instant alert lookups without scanning millions of raw rows.
 
 **Harsh Vekaria**
 MS Software Engineering -- University of Texas at Arlington
- [GitHub](https://github.com/harshvekaria)
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/harshvekaria)
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=flat&logo=github&logoColor=white)](https://github.com/harshvekaria)
