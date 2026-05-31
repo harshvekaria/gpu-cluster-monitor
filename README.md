@@ -38,7 +38,6 @@ gpu-cluster-monitor/
 ├── config/             # Shared config constants
 ├── docker-compose.yml
 └── .env
----
 
 ## How to Run
 
@@ -101,4 +100,3 @@ The Streamlit dashboard includes:
 **Harsh Vekaria**
 MS Software Engineering — University of Texas at Arlington
 GitHub: https://github.com/harshvekaria
-LinkedIn: https://linkedin.com/in/harshvekaria
