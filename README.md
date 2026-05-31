@@ -1,100 +1,80 @@
 # GPU Cluster Health & Utilization Streaming Monitor
 
-A real-time data engineering pipeline that simulates, processes, and visualizes
-GPU telemetry from a 12-GPU compute cluster — built to demonstrate production-grade
-streaming architecture using Apache Kafka, PySpark Structured Streaming, PostgreSQL,
-and Streamlit.
-
----
-
-## Architecture
-
-```mermaid
-flowchart LR
-    A[GPU Telemetry Simulator] -->|Kafka Topic: gpu-telemetry| B[PySpark Structured Streaming]
-    B --> C[(PostgreSQL)]
-    C --> D[Streamlit Dashboard]
-
-    B --> B1[Thermal Throttle Detection]
-    B --> B2[Efficiency Scoring]
-    B --> B3[Underutilization Flagging]
-    B --> B4[Z-Score Anomaly Detection]
-
-    C --> C1[(gpu_raw_telemetry)]
-    C --> C2[(gpu_analytics)]
-    C --> C3[(gpu_alerts)]
-```
-
----
-
-## Features
-
-- **Real-time ingestion** — Kafka producer emits correlated GPU telemetry at 12 events/sec (temperature rises with utilization, power follows load, errors cluster under stress)
-- **Streaming analytics** — PySpark foreachBatch processes 120 rows every 10 seconds
-- **Four detection algorithms** running every micro-batch:
-  - Thermal throttling: `max_temp > 83C AND avg_util < 60%`
-  - Efficiency scoring: weighted composite of utilization and memory bandwidth
-  - Underutilized node detection: `avg_util < 25%`
-  - Cluster-level anomaly detection via z-score: `(gpu_util - cluster_mean) / stddev > 2.5`
-- **Three-tier PostgreSQL storage** — raw telemetry, aggregated analytics, and alerts-only tables
-- **Live Streamlit dashboard** — 5-panel UI with Plotly charts, auto-refreshes every 10 seconds
+A real-time data engineering pipeline that simulates, processes, and visualizes GPU telemetry from a 12-GPU compute cluster using Apache Kafka, PySpark Structured Streaming, PostgreSQL, and Streamlit.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Message Broker | Apache Kafka 7.5 + Zookeeper |
-| Stream Processing | PySpark 3.5.1 Structured Streaming |
-| Storage | PostgreSQL 15 |
-| Dashboard | Streamlit 1.32 + Plotly |
-| Orchestration | Docker Compose |
-| Language | Python 3.11 |
+- **Apache Kafka** — real-time message streaming
+- **PySpark Structured Streaming** — micro-batch stream processing
+- **PostgreSQL** — three-tier data storage
+- **Streamlit + Plotly** — live dashboard
+- **Docker Compose** — full container orchestration
+- **Python 3.11**
+
+---
+
+## What It Does
+
+- Simulates 12 GPUs emitting telemetry every second (temperature, utilization, power draw, memory bandwidth, error codes)
+- Streams all events through Kafka into a PySpark consumer
+- PySpark runs four analytics algorithms every 10 seconds:
+  - Thermal throttle detection (temp > 83C)
+  - Efficiency scoring (utilization + memory bandwidth)
+  - Underutilization flagging (util < 25%)
+  - Anomaly detection (z-score across the cluster)
+- Writes results to PostgreSQL across three tables
+- Displays everything on a live Streamlit dashboard that auto-refreshes
 
 ---
 
 ## Project Structure
 gpu-cluster-monitor/
-├── producer/
-│   ├── simulator.py          # GPU telemetry Kafka producer
-│   ├── Dockerfile
-│   └── requirements.txt
-├── spark_consumer/
-│   ├── consumer.py           # PySpark Structured Streaming analytics
-│   ├── Dockerfile
-│   └── requirements.txt
-├── dashboard/
-│   ├── app.py                # Streamlit live dashboard
-│   ├── Dockerfile
-│   └── requirements.txt
-├── postgres/
-│   └── init/
-│       └── 01_schema.sql     # Auto-applied schema on first run
-├── config/
-│   └── kafka_config.py       # Shared constants
+├── producer/           # Kafka producer simulating GPU telemetry
+├── spark_consumer/     # PySpark Structured Streaming analytics
+├── dashboard/          # Streamlit live dashboard
+├── postgres/init/      # PostgreSQL schema (auto-applied on startup)
+├── config/             # Shared config constants
 ├── docker-compose.yml
 └── .env
-
 ---
 
-## Quick Start
+## How to Run
 
-**Prerequisites:** Docker Desktop, Git
+**Prerequisites:** Docker Desktop and Git installed.
 
+**1. Clone the repo**
 ```bash
 git clone https://github.com/harshvekaria/gpu-cluster-monitor.git
 cd gpu-cluster-monitor
+```
 
-# Start infrastructure
+**2. Create the environment file**
+
+Create a `.env` file in the root folder with the following content:
+POSTGRES_USER=gpuadmin
+POSTGRES_PASSWORD=gpupass123
+POSTGRES_DB=gpu_monitor
+KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+KAFKA_TOPIC=gpu-telemetry
+NUM_GPUS=12
+**3. Start infrastructure**
+```bash
 docker compose up -d zookeeper kafka postgres
+```
 
-# Wait 20 seconds, then start producer
+**4. Wait 20 seconds, then start the producer**
+```bash
 docker compose up -d kafka-ui producer
+```
 
-# Wait 15 seconds for topic creation, then start consumer and dashboard
+**5. Wait 15 seconds, then start the consumer and dashboard**
+```bash
 docker compose up -d --build spark-consumer dashboard
 ```
+
+**6. Open in browser**
 
 | Service | URL |
 |---|---|
@@ -103,35 +83,16 @@ docker compose up -d --build spark-consumer dashboard
 
 ---
 
-## Dashboard Panels
+## Dashboard
 
-| Panel | Description |
-|---|---|
-| Cluster KPIs | Total GPUs, avg utilization, avg temp, alert counts |
-| GPU Health Map | 12-card grid colored by health status |
-| Efficiency Rankings | Horizontal bar chart ranked by efficiency score |
-| Temperature Time Series | Rolling 5-min lines with 83C throttle threshold |
-| Recent Alerts | Live feed of CRITICAL / WARNING / LOW_UTIL events |
-| Utilization Bar Chart | All 12 GPUs with under/overload threshold lines |
+The Streamlit dashboard includes:
 
----
-
-## Key Design Decisions
-
-**Why Kafka + PySpark over Spark alone?**
-Kafka decouples producers from consumers. The telemetry simulator runs independently,
-and multiple consumers can subscribe to the same topic simultaneously — for example,
-a separate alerting microservice alongside the analytics engine.
-
-**Why foreachBatch instead of native streaming sinks?**
-foreachBatch gives full DataFrame API access inside each micro-batch, enabling
-multi-table writes (raw + analytics + alerts) in a single pass with custom business
-logic per table — not possible with native sinks alone.
-
-**Why three PostgreSQL tables?**
-Raw telemetry preserves every reading for replay and audit. Analytics stores
-aggregated results for fast dashboard queries. Alerts is a filtered subset
-enabling instant lookups without scanning millions of raw rows.
+- **Cluster KPIs** — total GPUs, average utilization, average temperature, alert counts
+- **GPU Health Map** — 12-card grid colored by health status (green / yellow / orange / red)
+- **Efficiency Rankings** — bar chart of all GPUs ranked by efficiency score
+- **Temperature Time Series** — rolling 5-minute chart with throttle threshold line
+- **Recent Alerts** — live feed of CRITICAL, WARNING, and LOW_UTIL events
+- **Utilization Bar Chart** — all 12 GPUs with threshold markers
 
 ---
 
@@ -139,6 +100,5 @@ enabling instant lookups without scanning millions of raw rows.
 
 **Harsh Vekaria**
 MS Software Engineering — University of Texas at Arlington
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/harshvekaria)
-[![GitHub](https://img.shields.io/badge/GitHub-100000?style=flat&logo=github&logoColor=white)](https://github.com/harshvekaria)
+GitHub: https://github.com/harshvekaria
+LinkedIn: https://linkedin.com/in/harshvekaria
