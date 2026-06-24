@@ -4,6 +4,20 @@ A real-time data engineering pipeline that simulates, processes, and visualizes 
 
 ---
 
+## Dashboard Preview
+
+![Dashboard Overview](screenshots/dashboard-overview.png)
+
+![GPU Health Map](screenshots/gpu-health-map.png)
+
+![Efficiency and Temperature](screenshots/efficiency-temperature.png)
+
+![Alerts Panel](screenshots/alerts-panel%20and%20temp%20lines.png)
+
+![Kafka UI](screenshots/kafka-ui-messages.png)
+
+---
+
 ## Tech Stack
 
 - **Apache Kafka** — real-time message streaming
@@ -31,13 +45,23 @@ A real-time data engineering pipeline that simulates, processes, and visualizes 
 
 ## Project Structure
 gpu-cluster-monitor/
+
 ├── producer/           # Kafka producer simulating GPU telemetry
+
 ├── spark_consumer/     # PySpark Structured Streaming analytics
+
 ├── dashboard/          # Streamlit live dashboard
+
 ├── postgres/init/      # PostgreSQL schema (auto-applied on startup)
+
 ├── config/             # Shared config constants
+
+├── screenshots/        # Dashboard screenshots
+
 ├── docker-compose.yml
+
 └── .env
+---
 
 ## How to Run
 
@@ -53,10 +77,15 @@ cd gpu-cluster-monitor
 
 Create a `.env` file in the root folder with the following content:
 POSTGRES_USER=gpuadmin
+
 POSTGRES_PASSWORD=gpupass123
+
 POSTGRES_DB=gpu_monitor
+
 KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+
 KAFKA_TOPIC=gpu-telemetry
+
 NUM_GPUS=12
 **3. Start infrastructure**
 ```bash
@@ -82,16 +111,16 @@ docker compose up -d --build spark-consumer dashboard
 
 ---
 
-## Dashboard
+## Dashboard Panels
 
-The Streamlit dashboard includes:
-
-- **Cluster KPIs** — total GPUs, average utilization, average temperature, alert counts
-- **GPU Health Map** — 12-card grid colored by health status (green / yellow / orange / red)
-- **Efficiency Rankings** — bar chart of all GPUs ranked by efficiency score
-- **Temperature Time Series** — rolling 5-minute chart with throttle threshold line
-- **Recent Alerts** — live feed of CRITICAL, WARNING, and LOW_UTIL events
-- **Utilization Bar Chart** — all 12 GPUs with threshold markers
+| Panel | Description |
+|---|---|
+| Cluster KPIs | Total GPUs, average utilization, average temperature, alert counts |
+| GPU Health Map | 12-card grid colored by health status (green / yellow / orange / red) |
+| Efficiency Rankings | Bar chart of all GPUs ranked by efficiency score |
+| Temperature Time Series | Rolling 5-minute chart with throttle threshold line |
+| Recent Alerts | Live feed of CRITICAL, WARNING, and LOW_UTIL events |
+| Utilization Bar Chart | All 12 GPUs with threshold markers |
 
 ---
 
@@ -100,3 +129,4 @@ The Streamlit dashboard includes:
 **Harsh Vekaria**
 MS Software Engineering — University of Texas at Arlington
 GitHub: https://github.com/harshvekaria
+LinkedIn: https://linkedin.com/in/harshvekaria
